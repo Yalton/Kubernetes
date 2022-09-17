@@ -11,7 +11,7 @@ services:
     environment:
       WORDPRESS_DB_HOST: 192.168.50.100:3306
       WORDPRESS_DB_USER: Wordpress
-      WORDPRESS_DB_PASSWORD: uqKmRvr3JoyTrxzyJ6fY
+      WORDPRESS_DB_PASSWORD: PASSWORD
       WORDPRESS_DB_NAME: blog
     volumes:
       - wordpress:/var/www/html
