@@ -1,0 +1,88 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: wiki-pv-volume
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 20Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/media/NASSD/kubernetes/data/wiki/config"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: wiki-pv-claim
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: dokuwiki
+  name: dokuwiki
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      io.kompose.service: dokuwiki
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert
+        kompose.version: 1.26.0 (40646f47)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: dokuwiki
+    spec:
+      containers:
+        - env:
+            - name: PGID
+              value: "1000"
+            - name: PUID
+              value: "1000"
+            - name: TZ
+              value: Etc/UTC
+          image: lscr.io/linuxserver/dokuwiki
+          name: wiki
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - mountPath: "/config"
+              name: wiki-pv-storage
+          resources: {}
+      volumes:
+        - name: wiki-pv-storage
+          persistentVolumeClaim:
+            claimName: wiki-pv-claim
+      restartPolicy: Always
+status: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    io.kompose.service: dokuwiki
+  name: dokuwiki
+spec:
+  type: LoadBalancer
+  ports:
+  - name: "8000"
+    port: 8000
+    protocol: TCP
+    targetPort: 80
+  selector:
+    io.kompose.service: dokuwiki
+  sessionAffinity: None

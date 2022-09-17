@@ -1,0 +1,84 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: flame-pv-volume
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 20Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/media/NASSD/kubernetes/data/flame"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: flame-pv-claim
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: flame
+  name: flame
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      io.kompose.service: flame
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert
+        kompose.version: 1.26.0 (40646f47)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: flame
+    spec:
+      containers:
+        - env:
+            - name: PASSWORD
+              value: Us5C33vbLudRVfz4JU5Fne5rTQMxNaEnUJf
+          image: pawelmalak/flame:latest
+          name: flame
+          ports:
+            - containerPort: 5005
+          volumeMounts:
+            - mountPath: "/app/data"
+              name: flame-pv-storage
+          resources: {}
+      volumes:
+        - name: flame-pv-storage
+          persistentVolumeClaim:
+            claimName: flame-pv-claim
+      restartPolicy: Always
+status: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    io.kompose.service: flame
+  name: flame
+spec:
+  type: LoadBalancer
+  ports:
+  - name: "5005"
+    port: 5005
+    protocol: TCP
+    targetPort: 5005
+  selector:
+    io.kompose.service: flame
+  sessionAffinity: None
